@@ -1,46 +1,81 @@
 // Dependencies go here
-use sdl2::video::Window;
-use sdl2::pixels::Color;
-use sdl2::render::Canvas;
-use sdl2::EventPump;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use std::{thread, time};
 
+use crate::lib::snake;
 
+pub mod lib;
 
-// this function initializes the canvas
-fn init<'a>(width: i32, height: i32) -> (Canvas<Window>, EventPump) {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-
-    let window = video_subsystem
-        .window("Rusty Snake", width as u32 + 1, height as u32 + 1)
-        .position_centered()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-    canvas.present();
-
-    let event_pump = sdl_context.event_pump().unwrap();
-    (canvas, event_pump)
-}
 
 // this is main
 fn main() {
-    let canvas_width = 200;
-    let canvas_height = 200;
+    let canvas_width = 720_u32;
+    let canvas_height = 720_u32;
 
-    let (mut canvas, mut events) = init(canvas_width, canvas_height);
+    let columns = 12_u32;
+    let rows = 12_u32;
 
-    loop {
+    let cell_width = canvas_width / columns;
+
+    let (mut canvas, mut events) = lib::init(canvas_width, canvas_height);
+    let mut grid = lib::grid_init(columns, rows);
+    let mut snake = snake::snake_init();
+    let mut direction = (0, 1);
+
+    thread::spawn(move || {
+        // some work here
+        });
+
+    'game: loop {
         for event in events.poll_iter() {
-            // handle user input here
-        }
-        // canvas.set_draw_color(Color::RGB(0, 0, 0));
-        // canvas.clear();
-        // canvas.present();
-    }
 
+            match event {
+                Event::KeyDown {
+                   keycode: Some(Keycode::Up),
+                   ..
+               } => {
+                   direction.0 = -1;
+                   direction.1 = 0;
+                   }
+
+               Event::KeyDown {
+                   keycode: Some(Keycode::Down),
+                   ..
+               } => {
+                   direction.0 = 1;
+                   direction.1 = 0;
+                   }
+
+               Event::KeyDown {
+                   keycode: Some(Keycode::Left),
+                   ..
+               } => {
+                   direction.1 = -1;
+                   direction.0 = 0;
+                   }
+
+               Event::KeyDown {
+                   keycode: Some(Keycode::Right),
+                   ..
+               } => {
+                   direction.1 = 1;
+                   direction.0 = 0;
+                   }
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'game,
+
+                _ => continue 'game,
+            }
+        }
+        let snake = snake::snake_moves(&mut snake, direction);
+        grid = snake::draw_grid_with_snake(grid, &snake);
+        lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
+        //grid = lib::clear_grid(&grid);
+        thread::sleep(time::Duration::from_millis(800));
+
+    }
 }
