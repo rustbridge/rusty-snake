@@ -12,7 +12,7 @@ pub mod snake;
 use types::{Grid, Cell};
 
 // this function initializes the canvas
-pub fn init<'a>(width: u32, height: u32) -> (Canvas<Window>, EventPump) {
+pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump) {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
