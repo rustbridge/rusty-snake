@@ -1,81 +1,86 @@
 // Dependencies go here
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use ggez::input::keyboard::{KeyCode, KeyMods};
+use ggez::{event::EventHandler, Context, GameResult};
 use std::{thread, time};
 
-use crate::lib::snake;
+use crate::lib::{snake, types};
 
 pub mod lib;
 
+struct Game {
+    grid: types::Grid,
+    snake: types::SnakeHead,
+    direction: (i32, i32),
+    columns: u32,
+    rows: u32,
+    cell_width: u32,
+}
+
+impl EventHandler for Game {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        snake::snake_moves(&mut self.snake, self.direction);
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        snake::draw_grid_with_snake(&mut self.grid, &self.snake);
+        lib::display_frame(ctx, &self.grid, &self.columns, &self.rows, &self.cell_width);
+        thread::sleep(time::Duration::from_millis(500));
+        Ok(())
+    }
+
+    fn key_down_event(
+        &mut self,
+        ctx: &mut Context,
+        keycode: KeyCode,
+        _keymods: KeyMods,
+        _repeat: bool,
+    ) {
+        match keycode {
+            KeyCode::Escape => ggez::event::quit(ctx),
+            KeyCode::Up => {
+                self.direction = (-1, 0);
+            }
+            KeyCode::Down => {
+                self.direction = (1, 0);
+            }
+            KeyCode::Left => {
+                self.direction = (0, -1);
+            }
+            KeyCode::Right => {
+                self.direction = (0, 1);
+            }
+            _ => {}
+        }
+    }
+}
 
 // this is main
 fn main() {
-    let canvas_width = 720_u32;
-    let canvas_height = 720_u32;
+    let canvas_width = 500;
+    let canvas_height = 500;
 
-    let columns = 12_u32;
-    let rows = 12_u32;
+    let columns = 12;
+    let rows = 12;
 
     let cell_width = canvas_width / columns;
 
-    let (mut canvas, mut events) = lib::init(canvas_width, canvas_height);
-    let mut grid = lib::grid_init(columns, rows);
-    let mut snake = snake::snake_init();
-    let mut direction = (0, 1);
+    let (mut canvas, mut events) = lib::init(canvas_width as f32, canvas_height as f32);
+    let grid = lib::grid_init(columns, rows);
+    let snake = snake::snake_init();
+
+    let mut game = Game {
+        grid,
+        snake,
+        direction: (0, 1),
+        columns,
+        rows,
+        cell_width,
+    };
 
     thread::spawn(move || {
         // some work here
-        });
+    });
 
-    'game: loop {
-        for event in events.poll_iter() {
-
-            match event {
-                Event::KeyDown {
-                   keycode: Some(Keycode::Up),
-                   ..
-               } => {
-                   direction.0 = -1;
-                   direction.1 = 0;
-                   }
-
-               Event::KeyDown {
-                   keycode: Some(Keycode::Down),
-                   ..
-               } => {
-                   direction.0 = 1;
-                   direction.1 = 0;
-                   }
-
-               Event::KeyDown {
-                   keycode: Some(Keycode::Left),
-                   ..
-               } => {
-                   direction.1 = -1;
-                   direction.0 = 0;
-                   }
-
-               Event::KeyDown {
-                   keycode: Some(Keycode::Right),
-                   ..
-               } => {
-                   direction.1 = 1;
-                   direction.0 = 0;
-                   }
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'game,
-
-                _ => continue 'game,
-            }
-        }
-        let snake = snake::snake_moves(&mut snake, direction);
-        grid = snake::draw_grid_with_snake(grid, &snake);
-        lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
-        //grid = lib::clear_grid(&grid);
-        thread::sleep(time::Duration::from_millis(800));
-
-    }
+    ggez::event::run(&mut canvas, &mut events, &mut game).unwrap();
 }
